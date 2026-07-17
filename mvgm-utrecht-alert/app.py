@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 URL="https://ikwilhuren.nu/aanbod/?sort=aanbodDESC"
 MAX_PRICE=1500
 TARGET_CITY="utrecht"
-SMTP_SERVER="smtp.office365.com"
+SMTP_SERVER="smtp.gmail.com"
 SMTP_PORT=587
 EMAIL_USER=os.environ["EMAIL_USER"]
 EMAIL_PASSWORD=os.environ["EMAIL_PASSWORD"]
