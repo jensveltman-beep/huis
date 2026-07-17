@@ -47,20 +47,16 @@ def save_seen(data):
 def send_email(matches):
     subject = f"🏠 New Utrecht Rental(s) under €{MAX_PRICE}"
 
-    html = """
-    <h2>New MVGM Rental Match</h2>
-    <ul>
-    """
+    html = "<h2>New MVGM Rental Match</h2><ul>"
 
     for item in matches:
-        html += f"""
-        <li>
-            <strong>{item['title']}</strong><br>
-            Price: €{item['price']}<br>
-            <item['url']}{item['url']}</a>
-        </li>
-        <br>
-        """
+        html += (
+            f"<li>"
+            f"<strong>{item['title']}</strong><br>"
+            f"Price: €{item['price']}<br>"
+            f"URL: {item['url']}"
+            f"</li><br>"
+        )
 
     html += "</ul>"
 
