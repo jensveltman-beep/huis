@@ -7,7 +7,7 @@ on:
   workflow_dispatch: 
 
 permissions:
-  contents: writes
+  contents: write
 
 jobs:
   check-listings:
