@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 MAX_PRICE = 1500
 TARGET_CITY = "utrecht"
-MAX_PAGES = 10
+MAX_PAGES = 15
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
