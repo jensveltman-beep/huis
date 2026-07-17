@@ -45,10 +45,10 @@ def save_seen(data):
 
 
 def send_email(matches):
-    subject = f"New Utrecht Rental(s) <= €{MAX_PRICE}"
+    subject = f"🏠 New Utrecht Rental(s) under €{MAX_PRICE}"
 
     html = """
-    <h2>🏠 New MVGM Rental Match</h2>
+    <h2>New MVGM Rental Match</h2>
     <ul>
     """
 
@@ -57,7 +57,7 @@ def send_email(matches):
         <li>
             <strong>{item['title']}</strong><br>
             Price: €{item['price']}<br>
-            URL: {item['url']}
+            <item['url']}{item['url']}</a>
         </li>
         <br>
         """
@@ -96,16 +96,17 @@ def scrape():
 
     for link in soup.select('a[href*="/object/"]'):
 
-        href = link.get("href")
+        href = link.get("href", "").strip()
 
         if not href:
             continue
 
-        url = (
-            href
-            if href.startswith("http")
-            else "https://ikwilhuren.nu" + href
-        )
+        if href.startswith("/"):
+            url = "https://ikwilhuren.nu" + href
+        elif href.startswith("http"):
+            url = href
+        else:
+            continue
 
         if url in processed:
             continue
@@ -119,7 +120,7 @@ def scrape():
 
         card_text = card.get_text(" ", strip=True)
 
-        if TARGET_CITY not in card_text.lower():
+        if TARGET_CITY.lower() not in card_text.lower():
             continue
 
         price_match = re.search(r"€\s*([\d\.]+)", card_text)
@@ -127,11 +128,10 @@ def scrape():
         if not price_match:
             continue
 
-        price = int(
-            price_match.group(1)
-            .replace(".", "")
-            .replace(",", "")
-        )
+        try:
+            price = int(price_match.group(1).replace(".", ""))
+        except ValueError:
+            continue
 
         if price > MAX_PRICE:
             continue
@@ -167,7 +167,10 @@ def main():
             seen.add(listing["id"])
 
     if new_matches:
+        print(f"Sending email for {len(new_matches)} new listing(s)")
         send_email(new_matches)
+    else:
+        print("No new listings found. No email sent.")
 
     save_seen(seen)
 
