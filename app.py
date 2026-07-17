@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 URL = "https://ikwilhuren.nu/aanbod/?sort=aanbodDESC"
 
-MAX_PRICE = 3000
+MAX_PRICE = 1500
 TARGET_CITY = "utrecht"
 
 SMTP_SERVER = "smtp.gmail.com"
