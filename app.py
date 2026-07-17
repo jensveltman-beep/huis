@@ -74,81 +74,107 @@ def send_email(matches):
 
 
 def scrape():
+
     session = requests.Session()
-
-    response = session.get(
-        URL,
-        headers=HEADERS,
-        timeout=30,
-        allow_redirects=True,
-    )
-
-    print("Status code:", response.status_code)
-
-    soup = BeautifulSoup(response.text, "lxml")
 
     listings = []
     processed = set()
 
-    for link in soup.select('a[href*="/object/"]'):
+    page = 1
 
-        href = link.get("href", "").strip()
+    while True:
 
-        if not href:
-            continue
+        page_url = f"https://ikwilhuren.nu/aanbod/?page={page}&sort=aanbodDESC"
 
-        if href.startswith("/"):
-            url = "https://ikwilhuren.nu" + href
-        elif href.startswith("http"):
-            url = href
-        else:
-            continue
+        print(f"Checking page {page}")
 
-        if url in processed:
-            continue
+        response = session.get(
+            page_url,
+            headers=HEADERS,
+            timeout=30,
+        )
 
-        processed.add(url)
+        response.raise_for_status()
 
-        card = link.find_parent("div", class_="card-body")
+        soup = BeautifulSoup(response.text, "lxml")
 
-        if not card:
-            continue
+        page_links = soup.select('a[href*="/object/"]')
 
-        card_text = card.get_text(" ", strip=True)
+        if not page_links:
+            print(f"No listings found on page {page}. Stopping.")
+            break
 
-        if TARGET_CITY.lower() not in card_text.lower():
-            continue
+        page_matches = 0
 
-        price_match = re.search(r"€\s*([\d\.]+)", card_text)
+        for link in page_links:
 
-        if not price_match:
-            continue
+            href = link.get("href", "").strip()
 
-        try:
-            price = int(price_match.group(1).replace(".", ""))
-        except ValueError:
-            continue
+            if not href:
+                continue
 
-        if price > MAX_PRICE:
-            continue
+            if href.startswith("/"):
+                url = "https://ikwilhuren.nu" + href
+            elif href.startswith("http"):
+                url = href
+            else:
+                continue
 
-        title = link.get_text(strip=True)
+            if url in processed:
+                continue
 
-        listing = {
-            "id": url,
-            "url": url,
-            "title": title,
-            "price": price,
-        }
+            processed.add(url)
 
-        listings.append(listing)
+            card = link.find_parent("div", class_="card-body")
 
-    print("\nMATCHES FOUND:")
+            if not card:
+                continue
+
+            card_text = card.get_text(" ", strip=True)
+
+            if TARGET_CITY.lower() not in card_text.lower():
+                continue
+
+            price_match = re.search(r"€\s*([\d\.]+)", card_text)
+
+            if not price_match:
+                continue
+
+            try:
+                price = int(
+                    price_match.group(1).replace(".", "")
+                )
+            except ValueError:
+                continue
+
+            if price > MAX_PRICE:
+                continue
+
+            title = link.get_text(strip=True)
+
+            listing = {
+                "id": url,
+                "url": url,
+                "title": title,
+                "price": price,
+            }
+
+            listings.append(listing)
+
+            page_matches += 1
+
+        print(
+            f"Page {page}: found {page_matches} matching Utrecht properties"
+        )
+
+        page += 1
+
+    print("\nFINAL MATCHES")
+
     for item in listings:
         print(item)
 
     return listings
-
 
 def main():
     seen = load_seen()
