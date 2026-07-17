@@ -8,10 +8,9 @@ from email.mime.multipart import MIMEMultipart
 import requests
 from bs4 import BeautifulSoup
 
-URL = "https://ikwilhuren.nu/aanbod/?sort=aanbodDESC"
-
 MAX_PRICE = 1500
 TARGET_CITY = "utrecht"
+MAX_PAGES = 10
 
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
@@ -74,17 +73,17 @@ def send_email(matches):
 
 
 def scrape():
-
     session = requests.Session()
 
     listings = []
     processed = set()
 
-    page = 1
+    for page in range(1, MAX_PAGES + 1):
 
-    while True:
-
-        page_url = f"https://ikwilhuren.nu/aanbod/?page={page}&sort=aanbodDESC"
+        page_url = (
+            f"https://ikwilhuren.nu/aanbod/"
+            f"?page={page}&sort=aanbodDESC"
+        )
 
         print(f"Checking page {page}")
 
@@ -98,15 +97,9 @@ def scrape():
 
         soup = BeautifulSoup(response.text, "lxml")
 
-        page_links = soup.select('a[href*="/object/"]')
-
-        if not page_links:
-            print(f"No listings found on page {page}. Stopping.")
-            break
-
         page_matches = 0
 
-        for link in page_links:
+        for link in soup.select('a[href*="/object/"]'):
 
             href = link.get("href", "").strip()
 
@@ -132,7 +125,7 @@ def scrape():
 
             card_text = card.get_text(" ", strip=True)
 
-            if TARGET_CITY.lower() not in card_text.lower():
+            if TARGET_CITY not in card_text.lower():
                 continue
 
             price_match = re.search(r"€\s*([\d\.]+)", card_text)
@@ -142,7 +135,8 @@ def scrape():
 
             try:
                 price = int(
-                    price_match.group(1).replace(".", "")
+                    price_match.group(1)
+                    .replace(".", "")
                 )
             except ValueError:
                 continue
@@ -150,31 +144,24 @@ def scrape():
             if price > MAX_PRICE:
                 continue
 
-            title = link.get_text(strip=True)
-
             listing = {
                 "id": url,
                 "url": url,
-                "title": title,
+                "title": link.get_text(strip=True),
                 "price": price,
             }
 
             listings.append(listing)
-
             page_matches += 1
 
         print(
-            f"Page {page}: found {page_matches} matching Utrecht properties"
+            f"Page {page}: {page_matches} matching properties"
         )
 
-        page += 1
-
-    print("\nFINAL MATCHES")
-
-    for item in listings:
-        print(item)
+    print(f"\nTotal matches found: {len(listings)}")
 
     return listings
+
 
 def main():
     seen = load_seen()
@@ -196,7 +183,7 @@ def main():
 
     save_seen(seen)
 
-    print(f"\nListings found: {len(listings)}")
+    print(f"Listings found: {len(listings)}")
     print(f"New listings: {len(new_matches)}")
 
 
