@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 URL = "https://ikwilhuren.nu/aanbod/?sort=aanbodDESC"
 
-MAX_PRICE = 1500
+MAX_PRICE = 3000
 TARGET_CITY = "utrecht"
 
 SMTP_SERVER = "smtp.gmail.com"
@@ -28,8 +28,6 @@ HEADERS = {
     ),
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     "Accept-Language": "nl-NL,nl;q=0.9,en;q=0.8",
-    "Referer": "https://www.google.com/",
-    "Connection": "keep-alive",
 }
 
 
@@ -46,30 +44,20 @@ def save_seen(data):
         json.dump(sorted(list(data)), f, indent=2)
 
 
-def extract_price(text):
-    text = text.replace(".", "")
-    match = re.search(r"€\s*(\d+)", text)
-
-    if not match:
-        return None
-
-    return int(match.group(1))
-
-
 def send_email(matches):
     subject = f"New Utrecht Rental(s) <= €{MAX_PRICE}"
 
     html = """
-    <h2>New MVGM Rental Match</h2>
+    <h2>🏠 New MVGM Rental Match</h2>
     <ul>
     """
 
     for item in matches:
         html += f"""
         <li>
-            <b>{item['title']}</b><br>
+            <strong>{item['title']}</strong><br>
             Price: €{item['price']}<br>
-            Link: {item['url']}{item['url']}</a>
+            URL: {item['url']}
         </li>
         <br>
         """
@@ -100,54 +88,68 @@ def scrape():
     )
 
     print("Status code:", response.status_code)
-    print("Response URL:", response.url)
-    print("First 500 chars:")
-    print(response.text[:500])
-
-    response.raise_for_status()
 
     soup = BeautifulSoup(response.text, "lxml")
 
     listings = []
     processed = set()
 
-    for anchor in soup.find_all("a", href=True):
-        href = anchor["href"]
+    for link in soup.select('a[href*="/object/"]'):
 
-        if "/object/" not in href:
+        href = link.get("href")
+
+        if not href:
             continue
 
-        if href.startswith("https://"):
-            url = href
-        else:
-            url = "https://ikwilhuren.nu" + href
+        url = (
+            href
+            if href.startswith("http")
+            else "https://ikwilhuren.nu" + href
+        )
 
         if url in processed:
             continue
 
         processed.add(url)
 
-        text = anchor.parent.get_text(" ", strip=True).lower()
+        card = link.find_parent("div", class_="card-body")
 
-        if TARGET_CITY not in text:
+        if not card:
             continue
 
-        price = extract_price(text)
+        card_text = card.get_text(" ", strip=True)
 
-        if price is None:
+        if TARGET_CITY not in card_text.lower():
             continue
+
+        price_match = re.search(r"€\s*([\d\.]+)", card_text)
+
+        if not price_match:
+            continue
+
+        price = int(
+            price_match.group(1)
+            .replace(".", "")
+            .replace(",", "")
+        )
 
         if price > MAX_PRICE:
             continue
 
-        listings.append(
-            {
-                "id": url,
-                "url": url,
-                "title": anchor.get_text(strip=True),
-                "price": price,
-            }
-        )
+        title = link.get_text(strip=True)
+
+        listing = {
+            "id": url,
+            "url": url,
+            "title": title,
+            "price": price,
+        }
+
+        listings.append(listing)
+
+    print("\nMATCHES FOUND:")
+    for item in listings:
+        print(item)
 
     return listings
 
@@ -169,7 +171,7 @@ def main():
 
     save_seen(seen)
 
-    print(f"Listings found: {len(listings)}")
+    print(f"\nListings found: {len(listings)}")
     print(f"New listings: {len(new_matches)}")
 
 
