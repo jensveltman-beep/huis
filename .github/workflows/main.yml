@@ -1,4 +1,4 @@
-name: Utrecht Rental Alert
+name: Utrecht Rental Alert Scheduled
 
 on:
   workflow_dispatch:
