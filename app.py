@@ -59,14 +59,17 @@ def extract_price(text):
 def send_email(matches):
     subject = f"New Utrecht Rental(s) <= €{MAX_PRICE}"
 
-    html = "<h2>New MVGM Rental Match</h2><ul>"
+    html = """
+    <h2>New MVGM Rental Match</h2>
+    <ul>
+    """
 
     for item in matches:
         html += f"""
         <li>
             <b>{item['title']}</b><br>
             Price: €{item['price']}<br>
-            ']}">Open Listing</a>
+            Link: {item['url']}{item['url']}</a>
         </li>
         <br>
         """
@@ -87,7 +90,6 @@ def send_email(matches):
 
 
 def scrape():
-
     session = requests.Session()
 
     response = session.get(
@@ -110,17 +112,15 @@ def scrape():
     processed = set()
 
     for anchor in soup.find_all("a", href=True):
-
         href = anchor["href"]
 
         if "/object/" not in href:
             continue
 
-        url = (
-            href
-            if href.startswith("https://")
-            else "https://ikwilhuren.nu" + href
-        )
+        if href.startswith("https://"):
+            url = href
+        else:
+            url = "https://ikwilhuren.nu" + href
 
         if url in processed:
             continue
@@ -134,7 +134,10 @@ def scrape():
 
         price = extract_price(text)
 
-        if price is None or price > MAX_PRICE:
+        if price is None:
+            continue
+
+        if price > MAX_PRICE:
             continue
 
         listings.append(
@@ -150,7 +153,6 @@ def scrape():
 
 
 def main():
-
     seen = load_seen()
 
     listings = scrape()
