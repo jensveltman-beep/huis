@@ -82,7 +82,7 @@ def scrape():
 
         page_url = (
             f"https://ikwilhuren.nu/aanbod/"
-            f"?page={page}&sort=aanbodDESC"
+            f"?page={page}&sort=aanbodASC"
         )
 
         print(f"Checking page {page}")
