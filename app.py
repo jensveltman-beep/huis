@@ -8,7 +8,7 @@ from email.mime.multipart import MIMEMultipart
 import requests
 from bs4 import BeautifulSoup
 
-MAX_PRICE = 1500
+MAX_PRICE = 1600
 TARGET_CITY = "utrecht"
 MAX_PAGES = 15
 
